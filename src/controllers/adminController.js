@@ -1,4 +1,4 @@
-import User from '../models/User.js';
+import {User} from '../models/User.js';
 
 // Get all users (only accessible by admin)
 export const getAllUsers = async (req, res) => {

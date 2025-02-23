@@ -1,22 +1,22 @@
 import express from 'express';
 import { createAppointment, getAllAppointments, getAppointmentById, updateAppointment, deleteAppointment } from '../controllers/appointmentController.js';
-import authMiddleware from '../middlewares/authMiddleware.js';
+import { verifyJWT } from '../middlewares/authMiddleware.js'; // Use named import
 
 const router = express.Router();
 
 // Create a new appointment
-router.post('/', authMiddleware, createAppointment);
+router.post('/', verifyJWT, createAppointment);
 
 // Get all appointments
-router.get('/', authMiddleware, getAllAppointments);
+router.get('/', verifyJWT, getAllAppointments);
 
 // Get an appointment by ID
-router.get('/:id', authMiddleware, getAppointmentById);
+router.get('/:id', verifyJWT, getAppointmentById);
 
 // Update an appointment by ID
-router.put('/:id', authMiddleware, updateAppointment);
+router.put('/:id', verifyJWT, updateAppointment);
 
 // Delete an appointment by ID
-router.delete('/:id', authMiddleware, deleteAppointment);
+router.delete('/:id', verifyJWT, deleteAppointment);
 
 export default router;

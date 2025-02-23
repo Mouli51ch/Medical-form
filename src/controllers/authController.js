@@ -1,63 +1,85 @@
+// src/controllers/authController.js
+
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
-import User from '../models/User';
+import { User } from '../models/User.js';
+import { asyncHandler } from '../utils/asyncHandler.js';
+import { ApiResponse } from '../utils/ApiResponse.js';
+import { ApiError } from '../utils/ApiError.js';
 
 const authController = express.Router();
 
-//Registering a new user
+// Register a new user
+authController.post('/register', asyncHandler(async (req, res) => {
+    const { username, email, password, fullName, avatar } = req.body;
 
-authController.post('/register', async (req, res) => {
-  const { username, email, password } = req.body;
-    try {
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const newUser = new User({
-            username,
-            email,
-            password: hashedPassword
-        });
-        await newUser.save();
-        res.status(201).json({ message: 'User registered successfully' }); 
-    } catch (error) {    
-        res.status(500).json({ message: 'Error registering user' });
+    if (!username || !email || !password || !fullName || !avatar) {
+        throw new ApiError(400, "All fields (username, email, password, fullName, avatar) are required");
     }
-});
 
-//login a user
+    const existingUser = await User.findOne({ $or: [{ email }, { username }] });
+    if (existingUser) {
+        throw new ApiError(409, "User with this email or username already exists");
+    }
 
-authController.post('/login', async (req, res) => { 
-  const { email, password } = req.body;
-  try {
-    const user = await User.findOne({username});
+    const newUser = new User({
+        username,
+        email,
+        password, // Will be hashed by pre-save hook
+        fullName,
+        avatar,
+        role: "patient"
+    });
+    
+    await newUser.save();
+    
+    return res.status(201).json(
+        new ApiResponse(201, { username, email, fullName }, "User registered successfully")
+    );
+}));
+
+// Login a user
+authController.post('/login', asyncHandler(async (req, res) => {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+        throw new ApiError(400, "Email and password are required");
+    }
+
+    const user = await User.findOne({ email });
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+        throw new ApiError(404, "User not found");
     }
-    const isMatch = await bcrypt.compare(password, user.password);
+
+    const isMatch = await user.isPasswordCorrect(password);
     if (!isMatch) {
-      return res.status(400).json({ message: 'Invalid credentials' });
+        throw new ApiError(401, "Invalid credentials");
     }
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
-    res.json({ token });
-}
-catch (error) {
-    res.status(500).json({ message: 'Error logging in' });
-}
+
+    const accessToken = user.generateAccessToken();
+    const refreshToken = user.generateRefreshToken();
+
+    user.refreshToken = refreshToken;
+    await user.save({ validateBeforeSave: false });
+
+    return res.json(
+        new ApiResponse(200, { accessToken, refreshToken, username: user.username }, "Login successful")
+    );
+}));
+
+// Middleware to protect routes
+const authenticateToken = asyncHandler(async (req, res, next) => {
+    const authHeader = req.header('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        throw new ApiError(401, "No token provided");
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    
+    const verified = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+    req.user = verified;
+    next();
 });
-
-//using the middleware to protect routes
-
-const authenticateToken = (req, res, next) => {
-    const token = req.header('Authorization').replace('Bearer ', '');
-    if (!token) {
-        return res.status(401).json({ message: 'Unauthorized' });
-    }
-    try{
-        const verified = jwt.verify(token, process.env.JWT_SECRET);
-        req.user = verified;
-        next();
-    } catch (error) {
-        res.status(400).json({ message: 'Invalid token' });
-    }
-};
 
 export { authController, authenticateToken };

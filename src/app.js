@@ -1,44 +1,56 @@
+// src/app.js
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
-import mongoose from "mongoose";
-import { PORT, MONGO_URI } from "./constants.js";
+import connectDB from "./database/db.js";
+import { PORT } from "./constants.js";
 
-// Import centralized routes
-import routes from "./routes/index.js";
+// Debug environment variables
+console.log("Environment variables at startup:", {
+    MONGODB_URI: process.env.MONGODB_URI,
+    PORT: process.env.PORT,
+    REFRESH_TOKEN_SECRET: process.env.REFRESH_TOKEN_SECRET
+});
 
 const app = express();
 
-app.use(
-  cors({
+app.use(cors({
     origin: process.env.CORS_ORIGIN,
-    credentials: true,
-  })
-); // app.use is basically used for middleware configuration
+    credentials: true
+}));
+
 app.use(express.json({ limit: "16kb" }));
 app.use(express.urlencoded({ extended: true, limit: "16kb" }));
 app.use(express.static("public"));
 app.use(cookieParser());
 
-// Connect to MongoDB
-mongoose
-  .connect(MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
-  .then(() => {
-    console.log("Connected to MongoDB");
-  })
-  .catch((err) => {
-    console.error("Error connecting to MongoDB", err);
-  });
+// routes import
+import authRoutes from './routes/authRoutes.js';
+import adminRoutes from './routes/adminRoutes.js';
+import appointmentRoutes from './routes/appointmentRoutes.js';
+import doctorRoutes from './routes/doctorRoutes.js';
+import patientRoutes from './routes/patientRoutes.js';
 
-// Use centralized routes
-app.use('/api', routes);
+// routes declaration
+app.use("/api/v1/auth", authRoutes);
+app.use("/api/v1/admin", adminRoutes);
+app.use("/api/v1/appointments", appointmentRoutes);
+app.use("/api/v1/doctors", doctorRoutes);
+app.use("/api/v1/patients", patientRoutes);
 
-// Start the server
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
+// Start server with DB connection
+const startServer = async () => {
+    try {
+        await connectDB();
+        app.listen(PORT, () => {
+            console.log(`Server running on port ${PORT}`);
+        });
+    } catch (error) {
+        console.error("Server startup failed:", error);
+        process.exit(1);
+    }
+};
+
+startServer();
 
 export { app };

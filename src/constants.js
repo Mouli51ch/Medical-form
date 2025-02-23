@@ -1,3 +1,4 @@
-export const PORT = process.env.PORT || 3000;
-export const MONGO_URI = process.env.MONGO_URI || 'your_mongo_uri';
-export const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
+// src/constants.js
+export const PORT = process.env.PORT || 8000;
+export const DB_NAME = "medical_forms_db";
+export const CORS_ORIGIN = process.env.CORS_ORIGIN || "http://localhost:3000";

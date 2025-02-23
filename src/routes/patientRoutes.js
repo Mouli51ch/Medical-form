@@ -1,22 +1,22 @@
 import express from 'express';
 import { createPatient, getAllPatients, getPatientById, updatePatient, deletePatient } from '../controllers/patientController.js';
-import authMiddleware from '../middlewares/authMiddleware.js';
+import { verifyJWT } from '../middlewares/authMiddleware.js'; // Use named import
 
 const router = express.Router();
 
 // Create a new patient
-router.post('/', authMiddleware, createPatient);
+router.post('/', verifyJWT, createPatient);
 
 // Get all patients
-router.get('/', authMiddleware, getAllPatients);
+router.get('/', verifyJWT, getAllPatients);
 
 // Get a patient by ID
-router.get('/:id', authMiddleware, getPatientById);
+router.get('/:id', verifyJWT, getPatientById);
 
 // Update a patient by ID
-router.put('/:id', authMiddleware, updatePatient);
+router.put('/:id', verifyJWT, updatePatient);
 
 // Delete a patient by ID
-router.delete('/:id', authMiddleware, deletePatient);
+router.delete('/:id', verifyJWT, deletePatient);
 
 export default router;

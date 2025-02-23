@@ -1,16 +1,16 @@
 import express from 'express';
 import { getAllUsers, updateUserRole, deleteUser } from '../controllers/adminController.js';
-import authMiddleware from '../middlewares/authMiddleware.js';
+import { verifyJWT } from '../middlewares/authMiddleware.js'; // Use named import
 
 const router = express.Router();
 
 // Get all users (only accessible by admin)
-router.get('/users', authMiddleware, getAllUsers);
+router.get('/users', verifyJWT, getAllUsers);
 
 // Update user role (only accessible by admin)
-router.put('/users/:id/role', authMiddleware, updateUserRole);
+router.put('/users/:id/role', verifyJWT, updateUserRole);
 
 // Delete a user (only accessible by admin)
-router.delete('/users/:id', authMiddleware, deleteUser);
+router.delete('/users/:id', verifyJWT, deleteUser);
 
 export default router;
